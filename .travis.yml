@@ -1,9 +1,27 @@
 language: python
-python:
-  - "2.7"
-  - "3.2"
-  - "3.3"
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: "pip install -r requirements.txt --use-mirrors"
-# command to run tests, e.g. python setup.py test
-script:  nosetests
+virtualenv:
+  system_site_packages: true
+env:
+  matrix:
+    # This environment tests the newest supported anaconda env
+    - DISTRIB="conda" PYTHON_VERSION="2.7" INSTALL_MKL="true"
+      NUMPY_VERSION="1.8.1" PYYAML_VERSION="3.11" COVERAGE="true"
+    - DISTRIB="conda" PYTHON_VERSION="3.3" INSTALL_MKL="true"
+      NUMPY_VERSION="1.8.1" PYYAML_VERSION="3.11" COVERAGE="true"
+    - DISTRIB="conda" PYTHON_VERSION="3.4" INSTALL_MKL="true"
+      NUMPY_VERSION="1.8.1" PYYAML_VERSION="3.11" COVERAGE="true"
+    # This environment tests minimal dependency versions
+    - DISTRIB="conda" PYTHON_VERSION="2.7" INSTALL_MKL="true"
+      NUMPY_VERSION="1.6.2" PYYAML_VERSION="3.1" COVERAGE="true"
+    - DISTRIB="conda" PYTHON_VERSION="3.3" INSTALL_MKL="true"
+      NUMPY_VERSION="1.6.2" PYYAML_VERSION="3.1" COVERAGE="true"
+    - DISTRIB="conda" PYTHON_VERSION="3.4" INSTALL_MKL="true"
+      NUMPY_VERSION="1.6.2" PYYAML_VERSION="3.1" COVERAGE="true"
+    # basic Ubuntu build environment, without optional dependencies
+    - DISTRIB="ubuntu" PYTHON_VERSION="2.7" INSTALL_ATLAS="true"
+      COVERAGE="true"
+install: source continuous_integration/install.sh
+script: bash continuous_integration/test_script.sh
+after_success:
+    - if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
+cache: apt
