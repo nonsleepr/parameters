@@ -11,7 +11,7 @@ from __future__ import division, print_function
 from parameters.parameter import _isiterable
 from parameters.parameter_range import ParameterRange
 from parameters.parameter_set import ParameterSet
-from parameters.random import ParameterDist
+from parameters.distributions import ParameterDist
 
 
 def _contains_instance(collection, cls):

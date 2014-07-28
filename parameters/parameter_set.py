@@ -19,7 +19,8 @@ except ImportError:
 
 from parameters.parameter_range import ParameterRange
 from parameters.parameter_reference import ParameterReference
-from parameters.random import GammaDist, NormalDist, ParameterDist, UniformDist
+from parameters.distributions import (GammaDist, NormalDist, ParameterDist,
+                                      UniformDist)
 
 
 if 'HTTP_PROXY' in os.environ:

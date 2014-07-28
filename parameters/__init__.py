@@ -12,6 +12,6 @@ from .parameter_reference import ParameterReference
 from .parameter_set import ParameterSet
 from .parameter_space import ParameterSpace
 from .parameter_table import ParameterTable
-from .random import ParameterDist, GammaDist, UniformDist, NormalDist
+from .distributions import ParameterDist, GammaDist, UniformDist, NormalDist
 from .validators import (CongruencyValidator, ParameterSchema,
                          SchemaBase, ValidationError)

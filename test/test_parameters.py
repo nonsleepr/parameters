@@ -24,7 +24,8 @@ except ImportError:
     have_scipy = False
 
 from parameters import *
-from parameters.random import GammaDist, UniformDist, NormalDist, ParameterDist
+from parameters.distributions import (GammaDist, NormalDist,
+                                      ParameterDist, UniformDist)
 
 try:
     next                  # Python 3
