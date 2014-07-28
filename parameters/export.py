@@ -2,8 +2,8 @@
 
 from __future__ import division, print_function
 
-from parameters import ParameterRange
-from parameters import ParameterTable
+from parameters.parameter_range import ParameterRange
+from parameters.parameter_table import ParameterTable
 
 
 def parameters_to_latex(filename, d, indent=0.5):

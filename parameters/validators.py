@@ -34,7 +34,7 @@ See also: parameters
 from __future__ import division, print_function
 
 import parameters
-from parameters import ParameterSet
+from parameters.parameter_set import ParameterSet
 
 
 class SchemaBase(object):
