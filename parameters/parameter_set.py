@@ -56,10 +56,7 @@ def _nesteddictflatten(d, separator='.'):
     dict using `separator`.
 
     """
-    flatd = {}
-    for k, v in _nesteddictwalk(d, separator):
-        flatd[k] = v
-    return flatd
+    return {k: v for k, v in _nesteddictwalk(d, separator)}
 
 
 def load_parameters(parameter_url, modified_parameters):
@@ -149,9 +146,8 @@ class ParameterSet(dict):
         try:
             if 'file://' in s:
                 path = s.split('file://')[1]
-                ifile = open(path, 'r')
-                content = ifile.read()
-                ifile.close()
+                with open(path, 'r') as ifile:
+                    content = ifile.read()
                 d = eval(content, global_dict)
             else:
                 d = eval(s, global_dict)
@@ -175,9 +171,7 @@ class ParameterSet(dict):
             # `ParameterSet` objects.
             for k, v in d.items():
                 ParameterSet.check_validity(k)
-                if isinstance(v, ParameterSet):
-                    d[k] = v
-                elif isinstance(v, dict):
+                if isinstance(v, dict):
                     d[k] = walk(v, k)
                 else:
                     d[k] = v
@@ -186,21 +180,17 @@ class ParameterSet(dict):
         self._url = None
         if hasattr(initialiser, 'lower'):  # url or str
             if os.path.exists(initialiser):
-                f = open(initialiser, 'r')
-                pstr = f.read()
+                with open(initialiser, 'r') as f:
+                    pstr = f.read()
                 self._url = initialiser
-                f.close()
             else:
-                try:
-                    f = urlopen(initialiser)
-                    pstr = f.read().decode()
-                    self._url = initialiser
-                except IOError:
-                    pstr = initialiser
-                    self._url = None
-                else:
-                    f.close()
-
+                with urlopen(initialiser) as f:
+                    try:
+                        pstr = f.read().decode()
+                        self._url = initialiser
+                    except IOError:
+                        pstr = initialiser
+                        self._url = None
             # is it a yaml url?
             if self._url:
                 o = urlparse(self._url)
@@ -221,9 +211,7 @@ class ParameterSet(dict):
         if isinstance(initialiser, dict):
             for k, v in initialiser.items():
                 ParameterSet.check_validity(k)
-                if isinstance(v, ParameterSet):
-                    self[k] = v
-                elif isinstance(v, dict):
+                if isinstance(v, dict):
                     self[k] = walk(v, k)
                 else:
                     self[k] = v
@@ -239,11 +227,11 @@ class ParameterSet(dict):
         else:
             self.label = label
 
-        # Define some aliases, allowing, e.g.:
-        # for name, value in P.parameters():
-        # for name in P.names():
-        self.names = self.keys
-        self.parameters = self.items
+    def names(self):
+        return self.keys()
+
+    def parameters(self):
+        return self.items()
 
     def flat(self):
         return _nesteddictwalk(self)
@@ -278,7 +266,7 @@ class ParameterSet(dict):
         """
         split = name.split('.', 1)
         if len(split) == 1:
-            return dict.__getitem__(self, name)
+            return super(ParameterSet, self).__getitem__(name)
         # nested get
         return dict.__getitem__(self, split[0])[split[1]]
 
@@ -290,16 +278,16 @@ class ParameterSet(dict):
         """
         split = name.split('.', 1)
         if len(split) == 1:
-            dict.__setitem__(self, name, value)
+            super(ParameterSet, self).__setitem__(name, value)
         else:
             # nested set
             try:
-                ps = dict.__getitem__(self, split[0])
+                ps = super(ParameterSet, self).__getitem__(split[0])
             except KeyError:
                 # setting nested name without parent existing
                 # create parent
                 ps = ParameterSet({})
-                dict.__setitem__(self, split[0], ps)
+                super(ParameterSet, self).__setitem__(split[0], ps)
                 # and try again
             ps.flat_add(split[1], value)
 
@@ -311,10 +299,11 @@ class ParameterSet(dict):
         """
         split = name.split('.', 1)
         if len(split) == 1:
-            dict.__setitem__(self, name, value)
-        else:
-            # nested set
-            dict.__getitem__(self, split[0])[split[1]] = value
+            super(ParameterSet, self).__setitem__(name, value)
+            return
+
+        # nested set
+        super(ParameterSet, self).__getitem__(split[0])[split[1]] = value
 
     def update(self, E, **kwargs):
         """Docstring missing. """
@@ -357,9 +346,8 @@ class ParameterSet(dict):
             self._url = url
         scheme, netloc, path, parameters, query, fragment = urlparse(url)
         if scheme == 'file' or (scheme == '' and netloc == ''):
-            f = open(path, 'w')
-            f.write(self.pretty(expand_urls=expand_urls))
-            f.close()
+            with open(path, 'w') as f:
+                f.write(self.pretty(expand_urls=expand_urls))
         else:
             if scheme:
                 raise Exception(
@@ -405,14 +393,14 @@ class ParameterSet(dict):
         tmp = ParameterSet({})
         for key in self:
             value = self[key]
-            if isinstance(value, ParameterSet):
+            if hasattr(value, 'tree_copy'):
                 tmp[key] = value.tree_copy()
             elif isinstance(value, ParameterReference):
                 tmp[key] = value.copy()
             else:
                 tmp[key] = value
         if tmp._is_space():
-            tmp = ParameterSpace(tmp)
+            return ParameterSpace(tmp)
         return tmp
 
     def as_dict(self):
@@ -421,11 +409,7 @@ class ParameterSet(dict):
 
         for key in self:
             value = self[key]
-            if isinstance(value, ParameterSet):
-                # recurse
-                tmp[key] = value.as_dict()
-            else:
-                tmp[key] = value
+            tmp[key] = value.as_dict() if hasattr(value, 'as_dict') else value
         return tmp
 
     def __sub__(self, other):
@@ -453,7 +437,7 @@ class ParameterSet(dict):
             elif self[item] != other[item]:
                 result1[item] = self[item]
                 result2[item] = other[item]
-        if len(result1) + len(result2) == 0:
+        if not len(result1) + len(result2):
             assert self == other, "Error in ParameterSet.diff()"
         return result1, result2
 
@@ -464,21 +448,19 @@ class ParameterSet(dict):
         Determines if this is a `ParameterSet` or a `ParameterSpace`.
 
         """
-        for k, v in self.flat():
-            if isinstance(v, ParameterRange) or isinstance(v, ParameterDist):
-                return True
-        return False
+        return any(isinstance(v, (ParameterRange, ParameterDist))
+                   for _, v in self.flat())
 
     def export(self, filename, format='latex', **kwargs):
         """Docstring missing. """
         if format == 'latex':
-            from .export import parameters_to_latex
+            from parameters.export import parameters_to_latex
             parameters_to_latex(filename, self, **kwargs)
 
     def replace_references(self):
         while True:
             refs = self.find_references()
-            if len(refs) == 0:
+            if not refs:
                 break
             for s, k, v in refs:
                 s[k] = v.evaluate(self)

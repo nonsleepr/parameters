@@ -90,13 +90,11 @@ def parameters_to_latex(filename, d, indent=0.5):
         return '\\\ \n'.join(s)
 
     line = walk(d, 0.0, indent)
-    f = open(filename, 'w')
     line = remove_non_valid_characters(line)
-    f.write(line)
-    f.close()
+    with open(filename, 'w'):
+        f.write(line)
 
     add_latex_tables()
-    f = open('tables_'+filename, 'w')
     lines = remove_non_valid_characters(lines)
-    f.writelines(lines)
-    f.close()
+    with open('tables_'+filename, 'w') as f:
+        f.writelines(lines)

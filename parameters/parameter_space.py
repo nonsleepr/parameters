@@ -38,8 +38,8 @@ class ParameterSpace(ParameterSet):
         `range_key` replaced with each of its values
 
         """
-        tmp = self.tree_copy()
         for val in self[range_key]:
+            tmp = self.tree_copy()
             tmp[range_key] = val
             yield tmp
 
@@ -64,27 +64,16 @@ class ParameterSpace(ParameterSet):
             yield self.tree_copy()
             return
 
-        if not copy:
-            # recursively iterate over remaining keys
-            for tmp in self.iter_inner_range_keys(keys[1:]):
-                # iterator over range of our present attention
-                for val in self[keys[0]]:
-                    tmp[keys[0]] = val
-                    if not tmp._is_space():
-                        tmp = ParameterSet(tmp)
-                    yield tmp
-        else:
-            # Each yielded ParameterSet is a tree_copy of self
-
-            # recursively iterate over remaining keys
-            for tmp in self.iter_inner_range_keys(keys[1:]):
-                # iterator over range of our present attention
-                for val in self[keys[0]]:
-                    tmp_copy = tmp.tree_copy()
-                    tmp_copy[keys[0]] = val
-                    if not tmp_copy._is_space():
-                        tmp = ParameterSet(tmp)
-                    yield tmp_copy
+        # recursively iterate over remaining keys
+        for tmp in self.iter_inner_range_keys(keys[1:]):
+            # iterator over range of our present attention
+            for val in self[keys[0]]:
+                if copy:
+                    tmp = tmp.tree_copy()
+                tmp[keys[0]] = val
+                if not tmp._is_space():
+                    tmp = ParameterSet(tmp)
+                yield tmp
 
     def range_keys(self):
         """Return the list of keys for elements that are `ParameterRanges`. """
@@ -103,10 +92,7 @@ class ParameterSpace(ParameterSet):
     def num_conditions(self):
         """Return the number items that will be returned by `iter_inner()`. """
         # Not properly tested
-        n = 1
-        for key in self.range_keys():
-            n *= len(self[key])
-        return n
+        return prod(len(self[key]) for key in self.range_keys())
 
     def dist_keys(self):
         """Return the list of keys for elements which are `ParameterDists`. """
@@ -138,8 +124,8 @@ class ParameterSpace(ParameterSet):
                 rngs[key] = [next(item, n) for item in self[key]]
             else:
                 rngs[key] = self[key].next(n)
-        # get a copy to fill in the rngs
-        if copy:
+
+            # get a copy to fill in the rngs
             tmp = self.tree_copy()
             for i in range(n):
                 for key in rngs:
@@ -148,17 +134,7 @@ class ParameterSpace(ParameterSet):
                                     for j in range(len(rngs[key]))]
                     else:
                         tmp[key] = rngs[key][i]
-                yield tmp.tree_copy()
-        else:
-            tmp = self.tree_copy()
-            for i in range(n):
-                for key in rngs:
-                    if _isiterable(self[key]):
-                        tmp[key] = [rngs[key][j][i]
-                                    for j in range(len(rngs[key]))]
-                    else:
-                        tmp[key] = rngs[key][i]
-                yield tmp
+                yield tmp.tree_copy() if copy else tmp
 
     def parameter_space_dimension_labels(self):
         """
@@ -167,16 +143,10 @@ class ParameterSpace(ParameterSet):
         `range_keys` are sorted to ensure the same ordering each time.
 
         """
-        range_keys = self.range_keys()
-        range_keys.sort()
+        range_keys = sorted(self.range_keys())
+        label = [len(getattr(self, key)) for key in range_keys]
 
-        dim = []
-        label = []
-        for key in range_keys:
-            label.append(key)
-            dim.append(len(eval('self.'+key)))
-
-        return dim, label
+        return range_keys, label
 
     def parameter_space_index(self, current_experiment):
         """
@@ -201,12 +171,11 @@ class ParameterSpace(ParameterSet):
 
         """
         index = []
-        range_keys = self.range_keys()
-        range_keys.sort()
+        range_keys = sorted(self.range_keys())
         for key in range_keys:
-            value = eval('current_experiment.'+key)
+            value = getattr(current_experiment, key)
             try:
-                value_index = list(eval('self.'+key)._values).index(value)
+                value_index = list(getattr(self, key)._values).index(value)
             except ValueError:
                 raise ValueError("The ParameterSet provided is not within the "
                                  "ParameterSpace")
@@ -227,9 +196,5 @@ class ParameterSpace(ParameterSet):
             {'a': ['p', 'y', 't', 'h', 'o', 'n'], 'b': [1, 2, 3]}
 
         """
-        data = {}
-        range_keys = self.range_keys()
-        range_keys.sort()
-        for key in range_keys:
-            data[key] = eval('self.'+key)._values
-        return data
+        return {key: getattr(self, key)._values for
+                key in sorted(self.range_keys())}

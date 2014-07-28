@@ -53,10 +53,7 @@ class ParameterReference(object):
     def _apply_operations(self, x):
         for f, arg in self.operations:
             try:
-                if arg is None:
-                    x = f(x)
-                else:
-                    x = f(x, arg)
+                x = f(x) if arg is None else f(x, arg)
             except TypeError:
                 raise TypeError("ParameterReference: error applying operation "
                                 "%s with argument %s to %s" % (f, arg, x))
@@ -69,10 +66,9 @@ class ParameterReference(object):
         It uses the ParameterSet in parameter_set as the source.
 
         """
-        from parameters.parameter_set import ParameterSet
 
         ref_value = parameter_set[self.reference_path]
-        if isinstance(ref_value, ParameterSet):
+        if hasattr(ref_value, 'tree_copy'):
             if self.operations == []:
                 return ref_value.tree_copy()
             else:

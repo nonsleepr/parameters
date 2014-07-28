@@ -40,16 +40,12 @@ class ParameterDist(object):
         self.dist_name = 'ParameterDist'
 
     def __repr__(self):
-        if len(self.params) == 0:
-            return '%s()' % (self.dist_name,)
-        s = '%s(' % (self.dist_name,)
-        for key in self.params:
-            s += '%s=%s,' % (key, str(self.params[key]))
-        return s[:-1]+')'
+        conts = ['%s=%s' % (key, self.params[key]) for key in self.params]
+        return '%s(%s)' % (self.dist_name, ','.join(conts[:-1]))
 
     def next(self, n=1):
-        raise NotImplementedError(
-            'This is an abstract base class and cannot be used directly')
+        raise NotImplementedError('This is an abstract base class and cannot '
+                                  'be used directly')
 
     def from_stats(self, vals, bias=0.0, expand=1.0):
         """Missing docstring. """
@@ -62,12 +58,9 @@ class ParameterDist(object):
     def __eq__(self, o):
         # should we track the state of the rng and return False if it is
         # different between self and o?
-        if (type(self) == type(o) and
-            self.dist_name == o.dist_name and
-                self.params == o.params):
-            return True
-        else:
-            return False
+        return (type(self) == type(o) and
+                self.dist_name == o.dist_name and
+                self.params == o.params)
 
 
 class GammaDist(ParameterDist):
@@ -94,21 +87,15 @@ class GammaDist(ParameterDist):
 
         """
         self.repr_mode = repr_mode
-        if 'm' in params and mean is None:
+        if mean is None and 'm' in params:
             mean = params['m']
-        if 's' in params and std is None:
+        if std is None and 's' in params:
             std = params['s']
 
         # neither mean nor std specified
-        if (mean, std) == (None, None):
-            if 'a' in params:
-                a = params['a']
-            else:
-                a = 1.0
-            if 'b' in params:
-                b = params['b']
-            else:
-                b = 1.0
+        if mean is None and std is None:
+            a = params.get('a', 1.0)
+            b = params.get('b', 1.0)
         else:
             if mean is None:
                 mean = 0.0

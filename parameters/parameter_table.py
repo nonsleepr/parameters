@@ -58,16 +58,18 @@ class ParameterTable(ParameterSet):
             # dict since URLs do not contain spaces.
             if tabledict:  # string table
                 initialiser = tabledict
-        ParameterSet.__init__(self, initialiser, label)
+        super(ParameterTable, self).__init__(initialiser, label)
         # Now need to check that the contents actually define a table, i.e.
         # two levels of nesting and each sub-dict has the same keys
         self._check_is_table()
 
-        self.rows = self.items
-        # self.rows.__doc__ = ("Return a list of (row_label, row) pairs, "
-        #                      "as 2-tuples."
-        self.row_labels = self.keys
-        # self.row_labels.__doc__ = "Return a list of row labels."
+    def rows(self):
+        """Return a list of (row_label, row) pairs, as 2-tuples. """
+        return self.items()
+
+    def row_labels(self):
+        """Return a list of row labels. """
+        return self.keys()
 
     def _check_is_table(self):
         """
@@ -86,9 +88,7 @@ class ParameterTable(ParameterSet):
 
     def column(self, column_label):
         """Return a `ParameterSet` object containing the requested column."""
-        col = {}
-        for row_label, row in self.rows():
-            col[row_label] = row[column_label]
+        col = {row_label: row[column_label] for row_label, row in self.rows()}
         return ParameterSet(col)
 
     def columns(self):
@@ -98,8 +98,7 @@ class ParameterTable(ParameterSet):
 
     def column_labels(self):
         """Return a list of column labels."""
-        sample_row = self[list(self.row_labels())[0]]
-        return sample_row.keys()
+        return self[list(self.row_labels())[0]].keys()
 
     def transpose(self):
         """Return a copy with rows and columns swapped. """
@@ -119,7 +118,6 @@ class ParameterTable(ParameterSet):
         column_labels = self.column_labels()
         lines = ["#\t " + "\t".join(column_labels)]
         for row_label, row in self.rows():
-            lines.append(
-                row_label + "\t" + "\t".join(["%s" % row[col]
-                                              for col in column_labels]))
+            lines.append(row_label + "\t" + "\t".join(["%s" % row[col] for col
+                                                       in column_labels]))
         return "\n".join(lines)
