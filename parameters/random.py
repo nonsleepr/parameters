@@ -1,9 +1,9 @@
+# -*- coding: utf-8 -*-
 """
-parameters.random
-=================
+A set of classes representing statistical distributions.
 
-A set of classes representing statistical distributions, with an interface that
-is compatible with the ParameterSpace class in the parameters module.
+Had an interface that is compatible with the ParameterSpace class in the
+parameters module.
 
 Classes
 -------
@@ -14,9 +14,12 @@ UniformDist - uniform distribution
 
 """
 
-from __future__ import absolute_import
+from __future__ import division, print_function
+
+import math
+
 try:
-    import numpy
+    import numpy as np
     import numpy.random
     have_numpy = True
 except ImportError:
@@ -26,13 +29,11 @@ try:
     have_scipy = True
 except ImportError:
     have_scipy = False
-import math
 
 
 class ParameterDist(object):
-    """
-    missing docstring
-    """
+
+    """ missing docstring."""
 
     def __init__(self, **params):
         self.params = params
@@ -51,10 +52,10 @@ class ParameterDist(object):
             'This is an abstract base class and cannot be used directly')
 
     def from_stats(self, vals, bias=0.0, expand=1.0):
-        """missing docstring"""
+        """Missing docstring. """
         if have_numpy:
-            self.__init__(mean=numpy.mean(vals)+bias,
-                          std=numpy.std(vals)*expand)
+            self.__init__(mean=np.mean(vals)+bias,
+                          std=np.std(vals)*expand)
         else:
             raise Exception("Error: numpy was not found at import time.")
 
@@ -70,11 +71,15 @@ class ParameterDist(object):
 
 
 class GammaDist(ParameterDist):
+
     """
+    A gamma distribution class.
+
     gamma.pdf(x,a,b) = x**(a-1)*exp(-x/b)/gamma(a)/b**a
 
     Yields strictly positive numbers.
-    Generally the distribution is implemented by `scipy.stats.gamma.pdf(x/b,a)/b`
+    Generally the distribution is implemented by `
+    scipy.stats.gamma.pdf(x/b,a)/b`
     For more info, in ipython type::
 
         >>> ? scipy.stats.gamma
@@ -83,8 +88,10 @@ class GammaDist(ParameterDist):
 
     def __init__(self, mean=None, std=None, repr_mode='ms', **params):
         """
-        repr_mode specifies how the dist is displayed,
+        repr_mode specifies how the dist is displayed.
+
         either mean,var ('ms', the default) or a,b ('ab')
+
         """
         self.repr_mode = repr_mode
         if 'm' in params and mean is None:
@@ -114,11 +121,12 @@ class GammaDist(ParameterDist):
 
     if have_scipy:
         def next(self, n=1):
-            return scipy.stats.gamma.rvs(self.params['a'], size=n)*self.params['b']
+            return scipy.stats.gamma.rvs(self.params['a'],
+                                         size=n)*self.params['b']
     else:
         def next(self, n=1):
-            raise Exception(
-                'Error: scipy was not found at import time.  GammaDist realization disabled.')
+            raise Exception('Error: scipy was not found at import time.  '
+                            'GammaDist realization disabled.')
 
     def mean(self):
         return self.params['a']*self.params['b']
@@ -130,13 +138,17 @@ class GammaDist(ParameterDist):
         if self.repr_mode == 'ms':
             return '%s(m=%f,s=%f)' % (self.dist_name, self.mean(), self.std())
         else:
-            return '%s(a=%f,b=%f)' % (self.dist_name, self.params['a'], self.params['b'])
+            return '%s(a=%f,b=%f)' % (self.dist_name,
+                                      self.params['a'], self.params['b'])
 
 
 class NormalDist(ParameterDist):
+
     """
-    normal distribution with parameters
+    Normal distribution with parameters.
+
     mean + std
+
     """
 
     def __init__(self, mean=0.0, std=1.0):
@@ -145,17 +157,17 @@ class NormalDist(ParameterDist):
 
     if have_numpy:
         def next(self, n=1):
-            return numpy.random.normal(loc=self.params['mean'], scale=self.params['std'], size=n)
+            return np.random.normal(loc=self.params['mean'],
+                                    scale=self.params['std'], size=n)
     else:
         def next(self, n=1):
-            raise Exception(
-                'Error: numpy was not found at import time.  NormalDist realization disabled.')
+            raise Exception('Error: numpy was not found at import time.  '
+                            'NormalDist realization disabled.')
 
 
 class UniformDist(ParameterDist):
-    """
-    uniform distribution with min,max
-    """
+
+    """Uniform distribution with min, max. """
 
     def __init__(self, min=0.0, max=1.0, return_type=float):
         ParameterDist.__init__(self, min=min, max=max)
@@ -164,16 +176,16 @@ class UniformDist(ParameterDist):
 
     if have_numpy:
         def next(self, n=1):
-            vals = numpy.random.uniform(low=self.params['min'],
-                                        high=self.params['max'],
-                                        size=n)
+            vals = np.random.uniform(low=self.params['min'],
+                                     high=self.params['max'],
+                                     size=n)
             if self.return_type != float:
                 vals = vals.astype(self.return_type)
             return vals
     else:
         def next(self, n=1):
-            raise Exception(
-                'Error: numpy was not found at import time.  UniformDist realization disabled.')
+            raise Exception('Error: numpy was not found at import time.  '
+                            'UniformDist realization disabled.')
 
     def from_stats(self, vals, bias=0.0, expand=1.0):
         mn = min(vals)

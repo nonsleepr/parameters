@@ -1,6 +1,9 @@
+#!/usr/bin/env python
 
-from .parameters import ParameterRange
-from .parameters import ParameterTable
+from __future__ import division, print_function
+
+from parameters import ParameterRange
+from parameters import ParameterTable
 
 
 def parameters_to_latex(filename, d, indent=0.5):
@@ -74,9 +77,11 @@ def parameters_to_latex(filename, d, indent=0.5):
                 s.append(walk(v, indent+ind_incr,  ind_incr))
                 s.append('\\hspace*{%scm} ' % indent)
             elif isinstance(v, ParameterRange):
-                s.append("\\hspace*{%scm} %s : %s" % (indent, k, str(v._values)))
+                s.append("\\hspace*{%scm} %s : %s" % (indent, k,
+                                                      str(v._values)))
             elif isinstance(v, ParameterTable):
-                s.append("\\hspace*{%scm} %s : see Table~\\ref{%s} " % (indent, k, k))
+                s.append("\\hspace*{%scm} %s : see Table~\\ref{%s} " % (indent,
+                                                                        k, k))
                 latex_table(k, v)
             elif isinstance(v, basestring):
                 s.append("\\hspace*{%scm} %s : %s" % (indent, k, v))

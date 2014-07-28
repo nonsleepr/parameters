@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Parameters
 ==========
@@ -8,26 +9,37 @@ Classes
 -------
 
 Parameter
-ParameterRange - for specifying a list of possible values for a given parameter.
-ParameterReference - specify a parameter in terms of the value of another parameter.
+ParameterRange - for specifying a list of possible values for a given
+                 parameter.
+
+ParameterReference - specify a parameter in terms of the value of another
+                     parameter
+
 ParameterSet   - for representing/managing hierarchical parameter sets.
-ParameterTable - a sub-class of ParameterSet that can represent a table of parameters.
+
+ParameterTable - a sub-class of ParameterSet that can represent a table of
+                 parameters.
+
 ParameterSpace - a collection of ParameterSets, representing multiple points in
                  parameter space.
 
 **Imported from validators**
 
-ParameterSchema      - A sub-class of ParameterSet against which other ParameterSets can be validated
-                       against using a Validator as found in the sub-package validators
+ParameterSchema - A sub-class of ParameterSet against which other ParameterSets
+                  can be validated against using a Validator as found in the
+                  sub-package validators
 
-CongruencyValidator  - A CongruencyValidator validates a ParameterSet against a ParameterSchema
-                       via member "validate(parameter_set,parameter_schema)".
+CongruencyValidator - A CongruencyValidator validates a ParameterSet against a
+                      ParameterSchema via member
+                      `validate(parameter_set, parameter_schema)`.
 
-ValidationError      - The Exception raised when validation fails
+ValidationError - The Exception raised when validation fails
 
-SchemaBase           - The base class of all "active" Schema objects to be placed in a ParameterSchema.
--> Sublass           - Validates the same-path ParameterSet value if it is of the specified type.
--> Eval              - Validates the same-path ParameterSet value if the provided expression
+SchemaBase - The base class of all "active" Schema objects to be placed in a
+             ParameterSchema.
+-> Sublass - Validates the same-path ParameterSet value if it is of the
+             specified type.
+-> Eval - Validates the same-path ParameterSet value if the provided expression
                        evaluates ("eval") to True.
 
 
@@ -35,36 +47,44 @@ SchemaBase           - The base class of all "active" Schema objects to be place
 Functions
 ---------
 
-nesteddictwalk    - Walk a nested dict structure, using a generator.
+nesteddictwalk - Walk a nested dict structure, using a generator.
+
 nesteddictflatten - Return a flattened version of a nested dict structure.
-string_table      - Convert a table written as a multi-line string into a dict of dicts.
+
+string_table - Convert a table written as a multi-line string into a dict of
+               dicts.
 
 
 
 Sub-Packages
 ------------
 
-validators        - A module implementing validation of ParameterSets against ParameterSchema.
+validators - A module implementing validation of ParameterSets against
+             ParameterSchema.
 
 """
 
-from __future__ import absolute_import
 import copy
-import warnings
+from copy import copy
+from functools import wraps
 import math
 import operator
-from functools import wraps
+from os import environ, path
+import random
+import warnings
+
 try:
-    from urllib2 import build_opener, install_opener, urlopen, ProxyHandler  # Python 2
+    # Python 2
+    from urllib2 import build_opener, install_opener, urlopen, ProxyHandler
     from urlparse import urlparse
 except ImportError:
-    from urllib.request import build_opener, install_opener, urlopen, ProxyHandler  # Python 3
+    # Python 3
+    from urllib.request import (build_opener, install_opener,
+                                urlopen, ProxyHandler)
     from urllib.parse import urlparse
 
-from os import environ, path
-from .random import ParameterDist, GammaDist, UniformDist, NormalDist
-import random
-from copy import copy
+from parameters.random import ParameterDist, GammaDist, UniformDist, NormalDist
+
 
 try:
     basestring
@@ -100,13 +120,14 @@ def nesteddictwalk(d, separator='.'):
     """
     Walk a nested dict structure, using a generator.
 
-    Composite keys are created by joining each key to the key of the parent dict
-    using `separator`.
+    Composite keys are created by joining each key to the key of the parent
+    dict using `separator`.
     """
     for key1, value1 in d.items():
         if isinstance(value1, dict):
-            for key2, value2 in nesteddictwalk(value1, separator):  # recurse into subdict
-                    yield "%s%s%s" % (key1, separator, key2), value2
+            for key2, value2 in nesteddictwalk(value1, separator):
+                # recurse into subdict
+                yield "%s%s%s" % (key1, separator, key2), value2
         else:
             yield key1, value1
 
@@ -115,8 +136,8 @@ def nesteddictflatten(d, separator='.'):
     """
     Return a flattened version of a nested dict structure.
 
-    Composite keys are created by joining each key to the key of the parent dict
-    using `separator`.
+    Composite keys are created by joining each key to the key of the parent
+    dict using `separator`.
     """
     flatd = {}
     for k, v in nesteddictwalk(d, separator):
@@ -189,6 +210,8 @@ class ParameterRange(Parameter):
             return False
 
 # --- ReferenceParameter
+
+
 def reverse(func):
     """Given a function f(a, b), returns f(b, a)"""
     @wraps(func)
@@ -197,15 +220,17 @@ def reverse(func):
     reversed_func.__doc__ = "Reversed argument form of %s" % func.__doc__
     reversed_func.__name__ = "reversed %s" % func.__name__
     return reversed_func
-    
+
+
 def lazy_operation(name, reversed=False):
     def op(self, val):
         f = getattr(operator, name)
         if reversed:
-           f = reverse(f)
+            f = reverse(f)
         self.operations.append((f, val))
         return self
     return op
+
 
 class ParameterReference(object):
     """
@@ -213,12 +238,12 @@ class ParameterReference(object):
     later be replaced with the value of the parameter pointed to by the
     reference. This class also allows for lazy application of operations,
     meaning that one can use the reference in simple formulas that will get
-    evaluated at the moment the reference is replaced. 
-    
+    evaluated at the moment the reference is replaced.
+
     Check below which operations are supported.
     """
-    def __init__(self,reference):
-        object.__init__(self)  
+    def __init__(self, reference):
+        object.__init__(self)
         self.reference_path = reference
         self.operations = []
 
@@ -230,53 +255,57 @@ class ParameterReference(object):
                 else:
                     x = f(x, arg)
             except TypeError:
-                raise TypeError("ParameterReference: error applying operation " + str(f) + " with argument " + str(arg) + " to " + str(x))
+                raise TypeError("ParameterReference: error applying operation "
+                                "%s with argument %s to %s" % (f, arg, x))
         return x
-    
-    def evaluate(self,parameter_set):
+
+    def evaluate(self, parameter_set):
         """
-        This function evaluetes the reference, using the ParameterSet in parameter_set as the source.
+        This function evaluates the reference,
+        using the ParameterSet in parameter_set as the source.
         """
         ref_value = parameter_set[self.reference_path]
-        if isinstance(ref_value,ParameterSet):
-           if self.operations == []:
-              return ref_value.tree_copy()
-           else:
-              raise ValueError("ParameterReference: lazy operations cannot be applied to argument of type ParameterSet> %s" % self.reference_path) 
-        elif isinstance(ref_value,ParameterReference):
-             #lets wait until the refe
-             return self
+        if isinstance(ref_value, ParameterSet):
+            if self.operations == []:
+                return ref_value.tree_copy()
+            else:
+                raise ValueError("ParameterReference: lazy operations cannot "
+                                 "be applied to argument of type ParameterSet>"
+                                 " %s" % self.reference_path)
+        elif isinstance(ref_value, ParameterReference):
+            # lets wait until the refe
+            return self
         else:
-           return self._apply_operations(ref_value)
+            return self._apply_operations(ref_value)
 
     def copy(self):
         pr = ParameterReference(self.reference_path)
         for f, arg in self.operations:
-            if isinstance(arg,ParameterReference):
-               pr.operations.append((f,arg.copy())) 
+            if isinstance(arg, ParameterReference):
+                pr.operations.append((f, arg.copy()))
             else:
-               pr.operations.append((f,arg))      
+                pr.operations.append((f, arg))
         return pr
-    __add__  = lazy_operation('add')
+    __add__ = lazy_operation('add')
     __radd__ = __add__
-    __sub__  = lazy_operation('sub')
+    __sub__ = lazy_operation('sub')
     __rsub__ = lazy_operation('sub', reversed=True)
-    __mul__  = lazy_operation('mul')
+    __mul__ = lazy_operation('mul')
     __rmul__ = __mul__
-    __div__  = lazy_operation('div')
+    __div__ = lazy_operation('div')
     __rdiv__ = lazy_operation('div', reversed=True)
     __truediv__ = lazy_operation('truediv')
     __rtruediv__ = lazy_operation('truediv', reversed=True)
-    __pow__  = lazy_operation('pow')
+    __pow__ = lazy_operation('pow')
 
 
 def load_parameters(parameter_url, modified_parameters):
     """
     This is a function that should be used to load a ParameterSet from a url.
-    
-    `modified_parameters` should be a dictionary of parameters and their values.
-    These will be replaced in the loaded parameter set before the references are
-    expanded.
+
+    `modified_parameters` should be a dictionary of parameters and their
+    values. These will be replaced in the loaded parameter set before the
+    references are expanded.
     """
     parameters = ParameterSet(parameter_url)
     parameters.replace_values(**modified_parameters)
@@ -289,11 +318,14 @@ class ParameterSet(dict):
     A class to manage hierarchical parameter sets.
 
     Usage example::
-    
+
         >>> sim_params = ParameterSet({'dt': 0.1, 'tstop': 1000.0})
-        >>> exc_cell_params = ParameterSet("http://neuralensemble.org/svn/NeuroTools/example.params")
+        >>> path = "http://neuralensemble.org/svn/NeuroTools/example.params"
+        >>> exc_cell_params = ParameterSet(path)
         >>> inh_cell_params = ParameterSet({'tau_m': 15.0, 'cm': 0.5})
-        >>> network_params = ParameterSet({'excitatory_cells': exc_cell_params, 'inhibitory_cells': inh_cell_params})
+        >>> network_params = ParameterSet({'excitatory_cells': exc_cell_params,
+        ...                                'inhibitory_cells':
+        ...                                inh_cell_params})
         >>> P = ParameterSet({'sim': sim_params, 'network': network_params})
         >>> P.sim.dt
         0.1
@@ -316,15 +348,16 @@ class ParameterSet(dict):
         `ParameterRange`, etc.  No other object types are allowed,
         except the function `url('some_url')` or `ref('point.delimited.path')`,
         e.g.::
-        
-            { 'a' : {'A': 3, 'B': 4},
-              'b' : [1,2,3],
-              'c' : 'hello world',
-              'd' : url('http://example.com/my_cool_parameter_set')
-              'e' : ref('level1_param_name.level2_param_name.level3_param_name') }
+
+            {'a': {'A': 3, 'B': 4},
+             'b': [1,2,3],
+             'c': 'hello world',
+             'd': url('http://example.com/my_cool_parameter_set')
+             'e': ref('level1_param_name.level2_param_name.level3_param_name')}
 
         This is largely the JSON (www.json.org) format, but with
-        extra keywords in the namespace such as `ParameterRange`, `GammaDist`, etc.
+        extra keywords in the namespace such as `ParameterRange`, `GammaDist`,
+        etc.
         """
         global_dict = dict(ref=ParameterReference,
                            url=ParameterSet,
@@ -337,7 +370,7 @@ class ParameterSet(dict):
                            pi=math.pi,
                            true=True,    # these are for reading JSON
                            false=False,  # files
-                        )
+                           )
         if update_namespace:
             global_dict.update(update_namespace)
 
@@ -413,8 +446,8 @@ class ParameterSet(dict):
                                                          update_namespace)
 
         # By this stage, `initialiser` should be a dict. Iterate through it,
-        # copying its contents into the current instance, and replacing dicts by
-        # ParameterSet objects.
+        # copying its contents into the current instance, and replacing dicts
+        # by ParameterSet objects.
         if isinstance(initialiser, dict):
             for k, v in initialiser.items():
                 ParameterSet.check_validity(k)
@@ -425,12 +458,14 @@ class ParameterSet(dict):
                 else:
                     self[k] = v
         else:
-            raise TypeError(
-                "`initialiser` must be a `dict`, a `ParameterSet` object, a string, or a valid URL")
+            raise TypeError("`initialiser` must be a `dict`, a `ParameterSet` "
+                            "object, a string, or a valid URL")
 
         # Set the label
         if hasattr(initialiser, 'label'):
-            self.label = label or initialiser.label  # if initialiser was a ParameterSet, keep the existing label if the label arg is None
+            # if initialiser was a ParameterSet,
+            # keep the existing label if the label arg is None
+            self.label = label or initialiser.label
         else:
             self.label = label
 
@@ -512,7 +547,8 @@ class ParameterSet(dict):
         for k in F:
             self[k] = F[k]
 
-    # should __len__() be the usual dict length, or the flattened length? Probably the former for consistency with dicts
+    # should __len__() be the usual dict length, or the flattened length?
+    # Probably the former for consistency with dicts
     # can always use len(ps.flatten())
 
     # what about __contains__()? Should we drill down to lower levels in the
@@ -526,8 +562,8 @@ class ParameterSet(dict):
         """
         Write the parameter set to a text file.
 
-        The text file syntax is open to discussion. My idea is that it should be
-        valid Python code, preferably importable as a module.
+        The text file syntax is open to discussion. My idea is that it should
+        be valid Python code, preferably importable as a module.
 
         If `url` is `None`, try to save to `self._url` (if it is not `None`),
         otherwise save to `url`.
@@ -552,8 +588,8 @@ class ParameterSet(dict):
 
     def pretty(self, indent='  ', expand_urls=False):
         """
-        Return a unicode string representing the structure of the `ParameterSet`.
-        evaluating the string should recreate the object.
+        Return a unicode string representing the structure of the
+        `ParameterSet`. evaluating the string should recreate the object.
         """
         def walk(d, indent, ind_incr):
             s = []
@@ -567,7 +603,9 @@ class ParameterSet(dict):
                         s.append('%s},' % indent)
                 elif isinstance(v, basestring):
                     s.append('%s"%s": "%s",' % (indent, k, v))
-                else:  # what if we have a dict or ParameterSet inside a list? currently they are not expanded. Should they be?
+                else:
+                    # what if we have a dict or ParameterSet inside a list?
+                    # currently they are not expanded. Should they be?
                     s.append('%s"%s": %s,' % (indent, k, v))
             return '\n'.join(s)
         return '{\n' + walk(self, indent, indent) + '\n}'
@@ -581,7 +619,7 @@ class ParameterSet(dict):
             value = self[key]
             if isinstance(value, ParameterSet):
                 tmp[key] = value.tree_copy()
-            elif isinstance(value,ParameterReference):                
+            elif isinstance(value, ParameterReference):
                 tmp[key] = value.copy()
             else:
                 tmp[key] = value
@@ -648,7 +686,7 @@ class ParameterSet(dict):
         if format == 'latex':
             from .export import parameters_to_latex
             parameters_to_latex(filename, self, **kwargs)
-    
+
     def replace_references(self):
         while True:
             refs = self.find_references()
@@ -656,25 +694,24 @@ class ParameterSet(dict):
                 break
             for s, k, v in refs:
                 s[k] = v.evaluate(self)
-                    
-                    
+
     def find_references(self):
         l = []
         for k, v in self.items():
             if isinstance(v, ParameterReference):
-               l += [(self, k, v)]
-            elif isinstance(v, ParameterSet):   
-               l += v.find_references()
-        return l    
-    
-    def replace_values(self,**args):
+                l += [(self, k, v)]
+            elif isinstance(v, ParameterSet):
+                l += v.find_references()
+        return l
+
+    def replace_values(self, **args):
         """
-        This expects its arguments to be in the form path=value, where path is a
-        . (dot) delimited path to a parameter in the  parameter tree rooted in
-        this ParameterSet instance. 
-        
-        This function replaces the values of each parameter in the args with the
-        corresponding values supplied in the arguments.
+        This expects its arguments to be in the form path=value, where path is
+        a . (dot) delimited path to a parameter in the  parameter tree rooted
+        in this ParameterSet instance.
+
+        This function replaces the values of each parameter in the args with
+        the corresponding values supplied in the arguments.
         """
         for k in args.keys():
             self[k] = args[k]
@@ -689,8 +726,9 @@ class ParameterSpace(ParameterSet):
 
     def iter_range_key(self, range_key):
         """ An iterator of the `ParameterSpace` which yields the
-        `ParameterSet` with the `ParameterRange` given by `range_key` replaced with
-        each of its values"""
+        `ParameterSet` with the `ParameterRange` given by `range_key`
+        replaced with each of its values
+        """
 
         tmp = self.tree_copy()
         for val in self[range_key]:
@@ -739,8 +777,12 @@ class ParameterSpace(ParameterSet):
                     yield tmp_copy
 
     def range_keys(self):
-        """Return the list of keys for those elements which are `ParameterRanges`."""
-        return [key for key, value in self.flat() if isinstance(value, ParameterRange)]
+        """
+        Return the list of keys for those elements which are `ParameterRanges`.
+
+        """
+        return [key for key, value in self.flat()
+                if isinstance(value, ParameterRange)]
 
     def iter_inner(self, copy=False):
         """An iterator of the `ParameterSpace` which yields
@@ -757,11 +799,16 @@ class ParameterSpace(ParameterSet):
         return n
 
     def dist_keys(self):
-        """Return the list of keys for those elements which are `ParameterDists`."""
+        """
+        Return the list of keys for those elements which are `ParameterDists`.
+
+        """
         def is_or_contains_dist(value):
-            return isinstance(value, ParameterDist) or (
-                isiterable(value) and contains_instance(value, ParameterDist))
-        return [key for key, value in self.flat() if is_or_contains_dist(value)]
+            return (isinstance(value, ParameterDist) or
+                    (isiterable(value) and
+                     contains_instance(value, ParameterDist)))
+        return [key for key, value in self.flat()
+                if is_or_contains_dist(value)]
 
     def realize_dists(self, n=1, copy=False):
         """For each `ParameterDist`, realize the distribution and yield the result.
@@ -805,8 +852,9 @@ class ParameterSpace(ParameterSet):
 
     def parameter_space_dimension_labels(self):
         """
-        Return the dimensions and labels of the keys for those elements which are `ParameterRanges`.
-        `range_keys` are sorted to ensure the same ordering each time.
+        Return the dimensions and labels of the keys for those elements
+        which are `ParameterRanges`. `range_keys` are sorted to ensure the same
+        ordering each time.
         """
         range_keys = self.range_keys()
         range_keys.sort()
@@ -821,7 +869,8 @@ class ParameterSpace(ParameterSet):
 
     def parameter_space_index(self, current_experiment):
         """
-        Return the index of the current experiment in the dimension of the parameter space
+        Return the index of the current experiment in the dimension of the
+        parameter space
         i.e. parameter space dimension: [2,3]
         i.e. index: (1,0)
 
@@ -847,14 +896,15 @@ class ParameterSpace(ParameterSet):
             try:
                 value_index = list(eval('self.'+key)._values).index(value)
             except ValueError:
-                raise ValueError(
-                    "The ParameterSet provided is not within the ParameterSpace")
+                raise ValueError("The ParameterSet provided is not within the "
+                                 "ParameterSpace")
             index.append(value_index)
         return tuple(index)
 
     def get_ranges_values(self):
         """
-        Return a dict with the keys and values of the parameters with `ParameterRanges`
+        Return a dict with the keys and values of the parameters with
+        `ParameterRanges`
 
         Example::
 
@@ -918,8 +968,8 @@ class ParameterTable(ParameterSet):
     def __init__(self, initialiser, label=None):
         if isinstance(initialiser, basestring):  # url or table string
             tabledict = string_table(initialiser)
-            # if initialiser is a URL, string_table() should return an empty dict
-            # since URLs do not contain spaces.
+            # if initialiser is a URL, string_table() should return an empty
+            # dict since URLs do not contain spaces.
             if tabledict:  # string table
                 initialiser = tabledict
         ParameterSet.__init__(self, initialiser, label)
@@ -928,7 +978,8 @@ class ParameterTable(ParameterSet):
         self._check_is_table()
 
         self.rows = self.items
-        # self.rows.__doc__ = "Return a list of (row_label, row) pairs, as 2-tuples."""
+        # self.rows.__doc__ = ("Return a list of (row_label, row) pairs, "
+        #                      "as 2-tuples."
         self.row_labels = self.keys
         # self.row_labels.__doc__ = "Return a list of row labels."
 
@@ -954,7 +1005,8 @@ class ParameterTable(ParameterSet):
 
     def columns(self):
         """Return a list of `(column_label, column)` pairs, as 2-tuples."""
-        return [(column_label, self.column(column_label)) for column_label in self.column_labels()]
+        return [(column_label, self.column(column_label)) for
+                column_label in self.column_labels()]
 
     def column_labels(self):
         """Return a list of column labels."""

@@ -1,48 +1,51 @@
+# -*- coding: utf-8 -*-
 """
-parameters.validators
-=====================
-
 A module implementing validation of ParameterSets against ParameterSchema.
 
 Classes
 -------
 
-SchemaBase           - The base class of all "active" Schema objects to be placed in a ParameterSchema.
--> Sublass           - Validates the same-path ParameterSet value if it is of the specified type.
--> Eval              - Validates the same-path ParameterSet value if the provided expression
-                       evaluates ("eval") to True.
+SchemaBase - The base class of all "active" Schema objects  to be placed in a
+             ParameterSchema.
+-> Sublass - Validates the same-path ParameterSet value if it is of the
+             specified type.
+-> Eval - Validates the same-path ParameterSet value if the provided expression
+          evaluates ("eval") to True.
 
-ParameterSchema      - A sub-class of ParameterSet against which other ParameterSets
+ParameterSchema - A sub-class of ParameterSet against which other ParameterSets
                        can be validated against.
 
-CongruencyValidator  - A CongruencyValidator validates a ParameterSet against a ParameterSchema
-                       via member "validate(parameter_set,parameter_schema)".
+CongruencyValidator - A CongruencyValidator validates a ParameterSet against a
+                      ParameterSchema via member
+                      `validate(parameter_set,parameter_schema)`.
 
 ValidationError      - The Exception raised when validation fails
 
 Functions
 ---------
 
-congruent_dicts      - returns True if two nested dictionaries have the same key heirarchy,
-                       otherwise False.
-
+congruent_dicts      - returns True if two nested dictionaries have the same
+                       key heirarchy, otherwise False.
 
 See also: parameters
 
 """
 
-from __future__ import absolute_import
-import yaml
-from parameters import ParameterSet
+from __future__ import division, print_function
+
 import parameters
+from parameters import ParameterSet
 
 
 class SchemaBase(object):
-    """ The base class of all "active" `Schema` objects to be placed in a `ParameterSchema`.
 
-    Schema objects define the "validate" member which accepts the to-be-validated `ParameterSet`
-    value from the same path as the `Schema` object in the `ParameterSchema` and returns True if
-    the value is valid, otherwise False.
+    """
+    Base class of active `Schema` objects to be placed in a `ParameterSchema`.
+
+    Schema objects define the "validate" member which accepts the
+    to-be-validated `ParameterSet` value from the same path as the `Schema`
+    object in the `ParameterSchema` and returns True if the value is valid,
+    otherwise False.
 
     """
 
@@ -58,11 +61,15 @@ class SchemaBase(object):
 
 
 class Subclass(SchemaBase):
+
     """
-    To be used as a value in a `ParameterSchema`.  Validates the same-path
-    `ParameterSet` value if it is of the specified type.
+    To be used as a value in a `ParameterSchema`.
+
+    Validates the same-path `ParameterSet` value if it is of the specified
+    type.
 
     See also: `SchemaBase`
+
     """
 
     def __init__(self, type=None):
@@ -73,7 +80,8 @@ class Subclass(SchemaBase):
 
     def __repr__(self):
         cls = self.__class__
-        return '.'.join([cls.__module__, cls.__name__])+'(type=%s)' % (self.type.__name__)
+        return '.'.join([cls.__module__,
+                         cls.__name__])+'(type=%s)' % (self.type.__name__)
 
     def __eq__(self, x):
         if isinstance(x, Subclass):
@@ -83,12 +91,16 @@ class Subclass(SchemaBase):
 
 
 class Eval(SchemaBase):
+
     """
-    To be used as a value in a `ParameterSchema`.  Validates the same-path
-    `ParameterSet` value if the provided expression (with `leaf(value)` mapped to var in eval local namespace)
-    evaluates to True.
+    To be used as a value in a `ParameterSchema`.
+
+    Validates the same-path `ParameterSet` value if the provided expression
+    (with `leaf(value)` mapped to var in eval local namespace) evaluates to
+    True.
 
     See also: `SchemaBase`
+
     """
 
     def __init__(self, expr, var='leaf'):
@@ -102,7 +114,8 @@ class Eval(SchemaBase):
 
     def __repr__(self):
         cls = self.__class__
-        return '.'.join([cls.__module__, cls.__name__])+'(%s,var=%s)' % (self.expr, self.var)
+        return '.'.join([cls.__module__,
+                         cls.__name__])+'(%s,var=%s)' % (self.expr, self.var)
 
     def __eq__(self, x):
         if isinstance(x, Eval):
@@ -120,15 +133,20 @@ for x in schema_checkers:
 
 
 class ParameterSchema(ParameterSet):
+
     """
-    A sub-class of `ParameterSet` against which other ParameterSets can be validated.
+    Subclass of `ParameterSet` for validating.
 
-    Presently, it is more or less a `ParameterSet`, with all leafs(values) which are not explicitly
-    a subclass of the `SchemaBase` object replaced by a `Subclass(type=<leaf(value) type>)` instance.
+    Validates against which other `ParameterSet` objects.
 
-    `ParameterSchema` may contain arbitrary `Schema` objects subclassed from `SchemaBase` which
-    validate leafs by the member function `validate(leaf)` returning True or false if the given
-    leaf in the `ParameterSet` at the same path should be validated or not, e.g.::
+    Presently, it is more or less a `ParameterSet`, with all leafs(values)
+    which are not explicitly a subclass of the `SchemaBase` object replaced by
+    a `Subclass(type=<leaf(value) type>)` instance.
+
+    `ParameterSchema` may contain arbitrary `Schema` objects subclassed from
+    `SchemaBase` which validate leafs by the member function `validate(leaf)`
+    returning True or false if the given leaf in the `ParameterSet` at the same
+    path should be validated or not, e.g.::
 
         LambdaSchema('isinstance(x,str)',var='x'),
         *unimplemented* Timedate('%.2d-%.2m-%.2y'), etc.
@@ -143,14 +161,14 @@ class ParameterSchema(ParameterSet):
 
         >>> schema = ParameterSchema({'age': 0, 'height': Subclass(float)})
         >>> # is equivalent to
-        >>> schema = ParameterSchema({'age': Subclass(int), 'height': Subclass(float)})
+        >>> schema = ParameterSchema({'age': Subclass(int),
+        ...                           'height': Subclass(float)})
 
     See also: `SchemaBase`, `Eval`, `Subclass`
 
     """
 
     def __init__(self, initializer):
-        import types
         ps = initializer
 
         # try to create a ParameterSet from ps if
@@ -170,7 +188,9 @@ class ParameterSchema(ParameterSet):
 
 
 class ValidationError(Exception):
-    """ Raised when `ParameterSchema` validation fails, and provides failure information
+
+    """
+    Raised when `ParameterSchema` validation fails, with failure information.
 
     See also: `CongruencyValidator`, `ParameterSchema`
 
@@ -182,17 +202,23 @@ class ValidationError(Exception):
         self.parameter = parameter
 
     def __str__(self):
-        return 'validation error @ %s: parameter "%s" failed against schema: %s' % (self.path, self.parameter, self.schema_base)
+        return ('validation error @ %s: parameter "%s" failed ' +
+                'against schema: %s' % (self.path,
+                                        self.parameter,
+                                        self.schema_base))
 
 
 class CongruencyValidator(object):
-    """
-    A `CongruencyValidator` validates a `ParameterSet` against a `ParameterSchema`
-    either returning `True`, or raising a `ValidationError` with the path, `SchemaBase` subclass
-    and parameter value for which the validation failed.
 
-    The `CongruencyValidator` expects all names defined in the schema to be present in the parameter set
-    and vice-versa, and will run validation for each item in the namespace tree.
+    """
+    Calidates a `ParameterSet` against a `ParameterSchema`.
+
+    Either returns `True`, or raising a `ValidationError` with the path,
+    `SchemaBase` subclass and parameter value for which the validation failed.
+
+    The `CongruencyValidator` expects all names defined in the schema to be
+    present in the parameter set and vice-versa, and will run validation for
+    each item in the namespace tree.
 
     The validation functionality is available via the "validate" member
     `CongruencyValidator.validate(parameter_set, parameter_schema)`
@@ -205,6 +231,7 @@ class CongruencyValidator(object):
         except ValidationError, e:
 
     See also: `ParameterSet`, `ParameterSchema`
+
     """
 
     def __init__(self):
@@ -212,23 +239,21 @@ class CongruencyValidator(object):
 
     def validate(self, parameter_set, parameter_schema):
         """
-        Validates a `ParameterSet` against a `ParameterSchema`
-        either returning `True`, or raising a `ValidationError` with the path and `SchemaBase` subclass
-        for which validation failed.
+        Validate a `ParameterSet` against a `ParameterSchema`.
+
+        Either returns `True`, or raises a `ValidationError` with the path
+        and `SchemaBase` subclass for which validation failed.
 
 
-        Expects all names defined in the schema to be present in the parameter set
-        and vice-versa, and will run validation for each item in the namespace tree.
+        Expects all names defined in the schema to be present in the parameter
+        set and vice-versa, and will run validation for each item in the
+        namespace tree.
 
         See also: `CongruencyValidator`.
 
         """
-
         ps = parameter_set
         schema = parameter_schema
-
-        ps_keys = set()
-        schema_keys = set()
 
         for path, sb in schema.flat():
             try:
@@ -250,11 +275,12 @@ class CongruencyValidator(object):
 
 
 def congruent_dicts(template, candidate, subset=False, parent_path=''):
-    """Return True if d1 and d2 have same key heirarchy, otherwise False
+    """
+    Return True if d1 and d2 have same key heirarchy, otherwise False.
 
     if subset=True, the key heirarchy of d2 maybe a subset
-    """
 
+    """
     dt = template
     dc = candidate
 
@@ -263,7 +289,7 @@ def congruent_dicts(template, candidate, subset=False, parent_path=''):
     types = (isinstance(dt, dict), isinstance(dc, dict))
 
     # both are not dicts, return True (for recursion)
-    if all([type == False for type in types]):
+    if all([not type for type in types]):
         return True
 
     if all(types):
@@ -285,7 +311,8 @@ def congruent_dicts(template, candidate, subset=False, parent_path=''):
             return False
 
         # check that all sub dicts are congruent.
-        subs_congruent = [congruent_dicts(template[key], candidate[key], subset)
+        subs_congruent = [congruent_dicts(template[key], candidate[key],
+                                          subset)
                           for key in keys_intersection]
         return all(subs_congruent)
 

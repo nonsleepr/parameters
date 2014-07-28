@@ -1,31 +1,36 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Unit tests for the parameters module
 
 Also see the doctests in doc/parameters.txt
 """
 
-from __future__ import absolute_import
-from parameters import *
-from parameters.random import GammaDist, UniformDist, NormalDist, ParameterDist
-import os
-import sys
-import unittest
-import types
-from copy import deepcopy
-import pickle
-import numpy
+from __future__ import print_function
 
-try:
-    next                  # Python 3
-except NameError:
-    def next(obj):        # Python 2
-        return obj.next()
+from copy import deepcopy
+import os
+import pickle
+import sys
+import types
+import unittest
+
+import numpy as np
 
 try:
     import scipy
     have_scipy = True
 except ImportError:
     have_scipy = False
+
+from parameters import *
+from parameters.random import GammaDist, UniformDist, NormalDist, ParameterDist
+
+try:
+    next                  # Python 3
+except NameError:
+    def next(obj):        # Python 2
+        return obj.next()
 
 # class DependenciesTest(unittest.TestCase):
 #    """
@@ -57,16 +62,19 @@ class ParameterRangeTest(unittest.TestCase):
 
     def test_shuffle_create(self):
         input_values = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
-        pr = ParameterRange(input_values, units="mV", name="test", shuffle=True)
+        pr = ParameterRange(input_values, units="mV", name="test",
+                            shuffle=True)
         values = []
         for x in pr:
             values.append(x)
-        self.assertNotEqual(values, input_values)  # will occasionally, by chance, fail
+        # will occasionally, by chance, fail
+        self.assertNotEqual(values, input_values)
         self.assertEqual(set(values), set(input_values))
 
     def test_str_and_repr(self):
         pr = ParameterRange([1, 3, 5, 7, 9], units="mV", name="pr")
-        self.assertEqual(repr(pr), 'ParameterRange([1, 3, 5, 7, 9], units="mV")')
+        self.assertEqual(repr(pr),
+                         'ParameterRange([1, 3, 5, 7, 9], units="mV")')
         first_value = next(pr)
         self.assertEqual(str(first_value), '1')
 
@@ -81,7 +89,8 @@ class ParameterSetCreateTest(unittest.TestCase):
         ps2 = ParameterSet({'ps': ps, 'c': 19}, label="PS2")
         ps3 = ParameterSet({'hello': 'world', 'ps2': ps2, 'null': None,
                             'true': False, 'mylist': [1, 2, 3, 4],
-                            'mydict': {'c': 3, 'd': 4}, 'yourlist': [1, 2, {'e': 5, 'f': 6}],
+                            'mydict': {'c': 3, 'd': 4},
+                            'yourlist': [1, 2, {'e': 5, 'f': 6}],
                             }, label="PS3")
         ps4 = ParameterSet(ps)
         ps5 = ParameterSet(ps, label="PS5")
@@ -107,7 +116,8 @@ class ParameterSetCreateTest(unittest.TestCase):
         ps2 = ParameterSet({'ps': ps, 'c': 19}, label="PS2")
         ps3 = ParameterSet({'hello': 'world', 'ps2': ps2, 'null': None,
                             'true': False, 'mylist': [1, 2, 3, 4],
-                            'mydict': {'c': 3, 'd': 4}, 'yourlist': [1, 2, {'e': 5, 'f': 6}],
+                            'mydict': {'c': 3, 'd': 4},
+                            'yourlist': [1, 2, {'e': 5, 'f': 6}],
                             }, label="PS3")
         ps4 = ParameterSet({})
         for x in ps3.flat():
@@ -150,9 +160,9 @@ class ParameterSetCreateTest(unittest.TestCase):
     def test_create_with_references(self):
         ps = ParameterSet({'hello': 'world',
                            'ps2': {
-                                'ps': {'a': 1, 'b': 2},
-                                'c': 19
-                                },
+                               'ps': {'a': 1, 'b': 2},
+                               'c': 19
+                               },
                            'null': None,
                            'true': False,
                            'mylist': [1, 2, 3, 4],
@@ -161,14 +171,14 @@ class ParameterSetCreateTest(unittest.TestCase):
                            'ref1': ParameterReference('null'),
                            'ref2': ParameterReference('ps2.ps.b'),
                            'nested_refs': {
-                                'ref3': ParameterReference('mydict.d'),
+                               'ref3': ParameterReference('mydict.d'),
                            }
-                          })
+                           })
         ps.replace_references()
         self.assertEqual(ps.ref1, None)
         self.assertEqual(ps.ref2, 2)
         self.assertEqual(ps.nested_refs.ref3, 4)
-    
+
 
 class ParameterSetSaveLoadTest(unittest.TestCase):
 
@@ -177,7 +187,8 @@ class ParameterSetSaveLoadTest(unittest.TestCase):
         ps2 = ParameterSet({'ps': ps, 'c': 19}, label="PS2")
         self.ps = ParameterSet({'hello': 'world', 'ps2': ps2, 'null': None,
                                 'true': False, 'mylist': [1, 2, 3, 4],
-                                'mydict': {'c': 3, 'd': 4}, 'yourlist': [1, 2, {'e': 5, 'f': 6}],
+                                'mydict': {'c': 3, 'd': 4},
+                                'yourlist': [1, 2, {'e': 5, 'f': 6}],
                                 }, label="PS3")
 
     def tearDown(self):
@@ -190,7 +201,8 @@ class ParameterSetSaveLoadTest(unittest.TestCase):
         new_ps = ParameterSet(my_url)
         self.assertEqual(self.ps, new_ps)
         self.assertEqual(self.ps.ps2.ps.b, new_ps.ps2.ps.b)
-        # self.assertEqual(self.ps.label, new_ps.label) # for now, labels are not preserved on saving
+        # for now, labels are not preserved on saving
+        # self.assertEqual(self.ps.label, new_ps.label)
 
     def test_pickle(self):
         pkl = pickle.dumps(self.ps)
@@ -234,7 +246,8 @@ class ParameterSetMiscTest(unittest.TestCase):
         ps2 = ParameterSet({'ps': ps, 'c': 19}, label="PS2")
         self.ps = ParameterSet({'hello': 'world', 'ps2': ps2, 'null': None,
                                 'true': False, 'mylist': [1, 2, 3, 4],
-                                'mydict': {'c': 3, 'd': 4}, 'yourlist': [1, 2, {'e': 5, 'f': 6}],
+                                'mydict': {'c': 3, 'd': 4},
+                                'yourlist': [1, 2, {'e': 5, 'f': 6}],
                                 }, label="PS3")
 
     def test_as_dict(self):
@@ -266,8 +279,10 @@ class ParameterSetDiffTest(unittest.TestCase):
     def test_diff_at_top_level(self):
         ps2 = ParameterSet(self.ps.as_dict())
         ps2.hello = 'universe'
-        self.assertEqual(ps2 - self.ps, ({'hello': 'universe'}, {'hello': 'world'}))
-        self.assertEqual(self.ps - ps2, ({'hello': 'world'}, {'hello': 'universe'}))
+        self.assertEqual(ps2 - self.ps, ({'hello': 'universe'},
+                                         {'hello': 'world'}))
+        self.assertEqual(self.ps - ps2, ({'hello': 'world'},
+                                         {'hello': 'universe'}))
 
     def test_diff_as_bottom_level(self):
         ps2 = ParameterSet(self.ps.as_dict())
@@ -278,8 +293,9 @@ class ParameterSetDiffTest(unittest.TestCase):
     def test_diff_inside_list(self):
         ps2 = ParameterSet(self.ps.as_dict())
         ps2.yourlist = [100, 2, {'e': 55, 'f': 6}]
-        self.assertEqual(ps2 - self.ps, ({'yourlist': [100, 2, {'e': 55, 'f': 6}]},
-                                         {'yourlist': [1, 2, {'e': 5, 'f': 6}]}))    
+        self.assertEqual(ps2 - self.ps,
+                         ({'yourlist': [100, 2, {'e': 55, 'f': 6}]},
+                          {'yourlist': [1, 2, {'e': 5, 'f': 6}]}))
 
 
 class ParameterSpaceDotAccess(unittest.TestCase):
@@ -339,7 +355,7 @@ class ParameterSpaceIterationTest(unittest.TestCase):
         # object by default
         ps7 = self.ps7
         out = [x for x in ps7.iter_inner()]
-        assert numpy.alltrue([x == out[0] for x in out])
+        assert np.alltrue([x == out[0] for x in out])
 
     def test_returns_ParameterSet(self):
         ps7 = self.ps7
@@ -353,7 +369,8 @@ class ParameterSpaceIterationTest(unittest.TestCase):
         ps7 = self.ps7
         out = [x for x in ps7.iter_inner(copy=True)]
         # now check that there are no duplicate objects
-        assert numpy.alltrue([out[x-1] not in out[x:] for x in range(1, len(out))])
+        assert np.alltrue([out[x-1] not in out[x:] for x in range(1,
+                                                                  len(out))])
 
     def test_tree_copy(self):
         ps7 = self.ps7
@@ -364,7 +381,8 @@ class ParameterSpaceIterationTest(unittest.TestCase):
     def test_num_conditions(self):
         ps7 = self.ps7
         self.assertEqual(ps7.num_conditions(), 4)
-        self.assertEqual(ps7.num_conditions(), len([x for x in ps7.iter_inner()]))
+        self.assertEqual(ps7.num_conditions(),
+                         len([x for x in ps7.iter_inner()]))
 
     def test_parameter_space_index(self):
         ps7 = self.ps7
@@ -379,7 +397,8 @@ class ParameterSpaceIterationTest(unittest.TestCase):
                 ParameterSet({'x': 2, 'foo': {}, 'name': {'y': 1.1}})), (0, 1))
         self.assertRaises(ValueError,
                           ps7.parameter_space_index,
-                          ParameterSet({'x': 3, 'foo': {}, 'name': {'y': 1.1}}))
+                          ParameterSet({'x': 3, 'foo': {},
+                                        'name': {'y': 1.1}}))
 
 
 class ParameterSpaceWithDistributionsTest(unittest.TestCase):
@@ -483,8 +502,10 @@ class ParameterTableTest(unittest.TestCase):
         ''')
         assert isinstance(pt, ParameterSet)
         self.assertEqual(pt.row2.col3, 6.0)
-        self.assertEqual(pt.column('col1'), {'row1': 1.0, 'row2': 4.0, 'row3': 7.0})
-        self.assertEqual(pt.row('row2'), {'col1': 4.0, 'col2': 5.0, 'col3': 6.0})
+        self.assertEqual(pt.column('col1'),
+                         {'row1': 1.0, 'row2': 4.0, 'row3': 7.0})
+        self.assertEqual(pt.row('row2'),
+                         {'col1': 4.0, 'col2': 5.0, 'col3': 6.0})
         self.assertEqual(pt.transpose().col3.row2, 6.0)
 
     def test_table_string(self):
@@ -498,53 +519,50 @@ class ParameterTableTest(unittest.TestCase):
         self.assertEqual(pt, ParameterTable(ts))
         self.assertNotEqual(pt, ParameterTable(ts.replace('7', '8')))
 
-class ParameterReferenceTest(unittest.TestCase):
-      
-      def test_simple_lazy_evaluation(self):
-          p = ParameterReference("A")
-          p + 1 
-          self.assertEqual(p.evaluate({'A' : 2, 'dummy' : 3}),3)
-          
-      def test_simple_lazy_left(self):
-          p = ParameterReference("A")
-          p / 10
-          self.assertEqual(p.evaluate({'A' : 20, 'dummy' : 3}),2)
 
-      def test_simple_lazy_right(self):
-          p = ParameterReference("A")
-          10 / p
-          self.assertEqual(p.evaluate({'A' : 5, 'dummy' : 3}),2)
-      
-      def test_ParameterSet_value(self):
-          ps = ParameterSet({'a': 1, 'b': 2}, label="PS1")
-          p = ParameterReference("A")
-          self.assertEqual(p.evaluate({'A' : ps, 'dummy' : 3}),ps)
-          p + 1
-          self.assertRaises(ValueError, p.evaluate, {'A' : ps, 'dummy' : 3})
-          
-      def test_unsupported_operation(self):          
-          p = ParameterReference("A")
-          p / "string"
-          self.assertRaises(TypeError, p.evaluate, {'A' : 5, 'dummy' : 3})
-        
-     
-      def test_replace_references_with_operations(self):        
+class ParameterReferenceTest(unittest.TestCase):
+    def test_simple_lazy_evaluation(self):
+        p = ParameterReference("A")
+        p + 1
+        self.assertEqual(p.evaluate({'A': 2, 'dummy': 3}), 3)
+
+    def test_simple_lazy_left(self):
+        p = ParameterReference("A")
+        p / 10
+        self.assertEqual(p.evaluate({'A': 20, 'dummy': 3}), 2)
+
+    def test_simple_lazy_right(self):
+        p = ParameterReference("A")
+        10 / p
+        self.assertEqual(p.evaluate({'A': 5, 'dummy': 3}), 2)
+
+    def test_ParameterSet_value(self):
+        ps = ParameterSet({'a': 1, 'b': 2}, label="PS1")
+        p = ParameterReference("A")
+        self.assertEqual(p.evaluate({'A': ps, 'dummy': 3}), ps)
+        p + 1
+        self.assertRaises(ValueError, p.evaluate, {'A': ps, 'dummy': 3})
+
+    def test_unsupported_operation(self):
+        p = ParameterReference("A")
+        p / "string"
+        self.assertRaises(TypeError, p.evaluate, {'A': 5, 'dummy': 3})
+
+    def test_replace_references_with_operations(self):
         ps = ParameterSet({
-                              'p1' : 2,
-                              'p2' : 4,
-                              'p3' : ParameterReference('p1')+ParameterReference('p2')+1,
-                              'p4' : ParameterReference('p3')+1,
-                              'p5' : { 
-                                        "z" : ParameterReference('p4')+1
-                                     },
-                              'p6' : ParameterReference('p5')
-                          })
+            'p1': 2,
+            'p2': 4,
+            'p3': ParameterReference('p1')+ParameterReference('p2')+1,
+            'p4': ParameterReference('p3')+1,
+            'p5': {"z": ParameterReference('p4')+1},
+            'p6': ParameterReference('p5')
+            })
         ps.replace_references()
+
         self.assertEqual(ps.p3, 7)
         self.assertEqual(ps.p4, 8)
         self.assertEqual(ps.p6.z, 9)
-        
-        
+
+
 if __name__ == '__main__':
     unittest.main()
-
