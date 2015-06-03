@@ -55,10 +55,10 @@ import math
 import operator
 from functools import wraps
 try:
-    from urllib2 import build_opener, install_opener, urlopen, ProxyHandler  # Python 2
+    from urllib2 import build_opener, install_opener, urlopen, ProxyHandler, HTTPHandler  # Python 2
     from urlparse import urlparse
 except ImportError:
-    from urllib.request import build_opener, install_opener, urlopen, ProxyHandler  # Python 3
+    from urllib.request import build_opener, install_opener, urlopen, ProxyHandler, HTTPHandler  # Python 3
     from urllib.parse import urlparse
 
 from os import environ, path
